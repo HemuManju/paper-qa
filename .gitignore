@@ -133,5 +133,9 @@ dmypy.json
 
 *.ipynb
 env
+
+# Custom files
 config.yml
 main.py
+indexes
+utils.py
