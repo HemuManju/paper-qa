@@ -11,18 +11,32 @@ import pytest
 import requests
 from openai import AsyncOpenAI
 
-from paperqa import (Answer, Doc, Docs, NumpyVectorStore, PromptCollection,
-                     Text, print_callback)
-from paperqa.llms import (AnthropicLLMModel, EmbeddingModel,
-                          HybridEmbeddingModel, LangchainEmbeddingModel,
-                          LangchainLLMModel, LangchainVectorStore, LLMModel,
-                          OpenAIEmbeddingModel, OpenAILLMModel,
-                          SparseEmbeddingModel, get_score, guess_model_type,
-                          is_openai_model)
+from paperqa import Answer, Doc, Docs, NumpyVectorStore, PromptCollection, Text, print_callback
+from paperqa.llms import (
+    AnthropicLLMModel,
+    EmbeddingModel,
+    HybridEmbeddingModel,
+    LangchainEmbeddingModel,
+    LangchainLLMModel,
+    LangchainVectorStore,
+    LLMModel,
+    OpenAIEmbeddingModel,
+    OpenAILLMModel,
+    SparseEmbeddingModel,
+    get_score,
+    guess_model_type,
+    is_openai_model,
+)
 from paperqa.readers import read_doc
-from paperqa.utils import (get_citenames, llm_read_json, maybe_is_html,
-                           maybe_is_text, name_in_text, strings_similarity,
-                           strip_citations)
+from paperqa.utils import (
+    get_citenames,
+    llm_read_json,
+    maybe_is_html,
+    maybe_is_text,
+    name_in_text,
+    strings_similarity,
+    strip_citations,
+)
 
 
 def test_is_openai_model():

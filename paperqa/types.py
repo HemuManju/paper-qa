@@ -4,12 +4,17 @@ from typing import Any, Callable
 from uuid import UUID, uuid4
 
 import tiktoken
-from pydantic import (BaseModel, ConfigDict, Field, computed_field,
-                      field_validator, model_validator)
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
 
-from .prompts import (citation_prompt, default_system_prompt, qa_prompt,
-                      select_paper_prompt, summary_json_prompt,
-                      summary_json_system_prompt, summary_prompt)
+from .prompts import (
+    citation_prompt,
+    default_system_prompt,
+    qa_prompt,
+    select_paper_prompt,
+    summary_json_prompt,
+    summary_json_system_prompt,
+    summary_prompt,
+)
 from .utils import get_citenames
 from .version import __version__ as pqa_version
 

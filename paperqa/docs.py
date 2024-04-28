@@ -14,16 +14,32 @@ from uuid import UUID, uuid4
 from openai import AsyncOpenAI
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .llms import (HybridEmbeddingModel, LLMModel, NumpyVectorStore,
-                   OpenAIEmbeddingModel, OpenAILLMModel, VectorStore,
-                   get_score, llm_model_factory, vector_store_factory)
+from .llms import (
+    HybridEmbeddingModel,
+    LLMModel,
+    NumpyVectorStore,
+    OpenAIEmbeddingModel,
+    OpenAILLMModel,
+    VectorStore,
+    get_score,
+    llm_model_factory,
+    vector_store_factory,
+)
 from .paths import PAPERQA_DIR
 from .readers import read_doc
-from .types import (Answer, CallbackFactory, Context, Doc, DocKey, LLMResult,
-                    PromptCollection, Text)
-from .utils import (gather_with_concurrency, get_loop, guess_is_4xx,
-                    llm_read_json, maybe_is_html, maybe_is_pdf, maybe_is_text,
-                    md5sum, name_in_text, strip_citations)
+from .types import Answer, CallbackFactory, Context, Doc, DocKey, LLMResult, PromptCollection, Text
+from .utils import (
+    gather_with_concurrency,
+    get_loop,
+    guess_is_4xx,
+    llm_read_json,
+    maybe_is_html,
+    maybe_is_pdf,
+    maybe_is_text,
+    md5sum,
+    name_in_text,
+    strip_citations,
+)
 
 
 # this is just to reduce None checks/type checks

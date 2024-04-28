@@ -14,8 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .prompts import default_system_prompt
 from .types import Doc, Embeddable, LLMResult, Text
-from .utils import (batch_iter, flatten, gather_with_concurrency,
-                    is_coroutine_callable)
+from .utils import batch_iter, flatten, gather_with_concurrency, is_coroutine_callable
 
 # only works for python 3.11
 # def guess_model_type(model_name: str) -> str:
@@ -600,8 +599,7 @@ class LangchainLLMModel(LLMModel):
             yield chunk
 
     async def achat(self, client: Any, messages: list[dict[str, str]]) -> str:
-        from langchain_core.messages import (BaseMessage, HumanMessage,
-                                             SystemMessage)
+        from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
         lc_messages: list[BaseMessage] = []
         for m in messages:
@@ -614,8 +612,7 @@ class LangchainLLMModel(LLMModel):
         return (await client.ainvoke(lc_messages)).content
 
     async def achat_iter(self, client: Any, messages: list[dict[str, str]]) -> Any:
-        from langchain_core.messages import (BaseMessage, HumanMessage,
-                                             SystemMessage)
+        from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
         lc_messages: list[BaseMessage] = []
         for m in messages:
