@@ -14,7 +14,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .prompts import default_system_prompt
 from .types import Doc, Embeddable, LLMResult, Text
-from .utils import batch_iter, flatten, gather_with_concurrency, is_coroutine_callable
+from .utils import (batch_iter, flatten, gather_with_concurrency,
+                    is_coroutine_callable)
 
 # only works for python 3.11
 # def guess_model_type(model_name: str) -> str:
@@ -69,7 +70,8 @@ def is_openai_model(model_name) -> bool:
 
 
 def process_llm_config(
-    llm_config: dict, max_token_name: str = "max_tokens"  # noqa: S107
+    llm_config: dict,
+    max_token_name: str = "max_tokens",  # noqa: S107
 ) -> dict:
     """Remove model_type and try to set max_tokens."""
     result = {k: v for k, v in llm_config.items() if k != "model_type"}
@@ -77,9 +79,7 @@ def process_llm_config(
         model = llm_config["model"]
         # now we guess - we could use tiktoken to count,
         # but do have the initiative right now
-        if model.startswith("gpt-4") or (
-            model.startswith("gpt-3.5") and "1106" in model
-        ):
+        if model.startswith("gpt-4") or (model.startswith("gpt-3.5") and "1106" in model):
             result[max_token_name] = 3000
         else:
             result[max_token_name] = 1500
@@ -91,9 +91,7 @@ async def embed_documents(
 ) -> list[list[float]]:
     """Embed a list of documents with batching."""
     if client is None:
-        raise ValueError(
-            "Your client is None - did you forget to set it after pickling?"
-        )
+        raise ValueError("Your client is None - did you forget to set it after pickling?")
     N = len(texts)
     embeddings = []
     for i in range(0, N, batch_size):
@@ -132,9 +130,7 @@ class SparseEmbeddingModel(EmbeddingModel):
         enc_batch = self.enc.encode_ordinary_batch(texts)
         # now get frequency of each token rel to length
         return [
-            np.bincount([xi % self.ndim for xi in x], minlength=self.ndim).astype(float)
-            / len(x)
-            for x in enc_batch
+            np.bincount([xi % self.ndim for xi in x], minlength=self.ndim).astype(float) / len(x) for x in enc_batch
         ]
 
 
@@ -143,9 +139,7 @@ class HybridEmbeddingModel(EmbeddingModel):
     models: list[EmbeddingModel]
 
     async def embed_documents(self, client, texts):
-        all_embeds = await asyncio.gather(
-            *[m.embed_documents(client, texts) for m in self.models]
-        )
+        all_embeds = await asyncio.gather(*[m.embed_documents(client, texts) for m in self.models])
         return np.concatenate(all_embeds, axis=1)
 
 
@@ -186,9 +180,7 @@ class LLMModel(ABC, BaseModel):
         prompt: str,
         skip_system: bool = False,
         system_prompt: str = default_system_prompt,
-    ) -> Callable[
-        [dict, list[Callable[[str], None]] | None], Coroutine[Any, Any, LLMResult]
-    ]:
+    ) -> Callable[[dict, list[Callable[[str], None]] | None], Coroutine[Any, Any, LLMResult]]:
         """Create a function to execute a batch of prompts.
 
         This replaces the previous use of langchain for combining prompts and LLMs.
@@ -211,11 +203,7 @@ class LLMModel(ABC, BaseModel):
         if self.llm_type == "chat":
             system_message_prompt = {"role": "system", "content": system_prompt}
             human_message_prompt = {"role": "user", "content": prompt}
-            chat_prompt = (
-                [human_message_prompt]
-                if skip_system
-                else [system_message_prompt, human_message_prompt]
-            )
+            chat_prompt = [human_message_prompt] if skip_system else [system_message_prompt, human_message_prompt]
 
             async def execute(
                 data: dict,
@@ -232,45 +220,35 @@ class LLMModel(ABC, BaseModel):
                         {"role": m["role"], "content": m["content"].format(**data)}
                     )
                 result.prompt = messages
-                result.prompt_count = sum(
-                    [self.count_tokens(m["content"]) for m in messages]
-                ) + sum([self.count_tokens(m["role"]) for m in messages])
+                result.prompt_count = sum([self.count_tokens(m["content"]) for m in messages]) + sum(
+                    [self.count_tokens(m["role"]) for m in messages]
+                )
 
                 if callbacks is None:
                     output = await self.achat(client, messages)
                 else:
-                    sync_callbacks = [
-                        f for f in callbacks if not is_coroutine_callable(f)
-                    ]
+                    sync_callbacks = [f for f in callbacks if not is_coroutine_callable(f)]
                     async_callbacks = [f for f in callbacks if is_coroutine_callable(f)]
                     completion = self.achat_iter(client, messages)
                     text_result = []
                     async for chunk in completion:  # type: ignore[attr-defined]
                         if chunk:
                             if result.seconds_to_first_token == 0:
-                                result.seconds_to_first_token = (
-                                    asyncio.get_running_loop().time() - start_clock
-                                )
+                                result.seconds_to_first_token = asyncio.get_running_loop().time() - start_clock
                             text_result.append(chunk)
                             [await f(chunk) for f in async_callbacks]
                             [f(chunk) for f in sync_callbacks]
                     output = "".join(text_result)
                 result.completion_count = self.count_tokens(output)
                 result.text = output
-                result.seconds_to_last_token = (
-                    asyncio.get_running_loop().time() - start_clock
-                )
+                result.seconds_to_last_token = asyncio.get_running_loop().time() - start_clock
                 return result
 
             return execute
         elif self.llm_type == "completion":  # noqa: RET505
-            completion_prompt = (
-                prompt if skip_system else system_prompt + "\n\n" + prompt
-            )
+            completion_prompt = prompt if skip_system else system_prompt + "\n\n" + prompt
 
-            async def execute(
-                data: dict, callbacks: list[Callable] | None = None
-            ) -> LLMResult:
+            async def execute(data: dict, callbacks: list[Callable] | None = None) -> LLMResult:
                 start_clock = asyncio.get_running_loop().time()
                 result = LLMResult(
                     model=self.name,
@@ -282,9 +260,7 @@ class LLMModel(ABC, BaseModel):
                 if callbacks is None:
                     output = await self.acomplete(client, formatted_prompt)
                 else:
-                    sync_callbacks = [
-                        f for f in callbacks if not is_coroutine_callable(f)
-                    ]
+                    sync_callbacks = [f for f in callbacks if not is_coroutine_callable(f)]
                     async_callbacks = [f for f in callbacks if is_coroutine_callable(f)]
 
                     completion = self.acomplete_iter(
@@ -295,18 +271,14 @@ class LLMModel(ABC, BaseModel):
                     async for chunk in completion:  # type: ignore[attr-defined]
                         if chunk:
                             if result.seconds_to_first_token == 0:
-                                result.seconds_to_first_token = (
-                                    asyncio.get_running_loop().time() - start_clock
-                                )
+                                result.seconds_to_first_token = asyncio.get_running_loop().time() - start_clock
                             text_result.append(chunk)
                             [await f(chunk) for f in async_callbacks]
                             [f(chunk) for f in sync_callbacks]
                     output = "".join(text_result)
                 result.completion_count = self.count_tokens(output)
                 result.text = output
-                result.seconds_to_last_token = (
-                    asyncio.get_running_loop().time() - start_clock
-                )
+                result.seconds_to_last_token = asyncio.get_running_loop().time() - start_clock
                 return result
 
             return execute
@@ -319,9 +291,7 @@ class OpenAILLMModel(LLMModel):
 
     def _check_client(self, client: Any) -> AsyncOpenAI:
         if client is None:
-            raise ValueError(
-                "Your client is None - did you forget to set it after pickling?"
-            )
+            raise ValueError("Your client is None - did you forget to set it after pickling?")
         if not isinstance(client, AsyncOpenAI):
             raise ValueError(  # noqa: TRY004
                 f"Your client is not a required AsyncOpenAI client. It is a {type(client)}"
@@ -344,24 +314,18 @@ class OpenAILLMModel(LLMModel):
 
     async def acomplete(self, client: Any, prompt: str) -> str:
         aclient = self._check_client(client)
-        completion = await aclient.completions.create(
-            prompt=prompt, **process_llm_config(self.config)
-        )
+        completion = await aclient.completions.create(prompt=prompt, **process_llm_config(self.config))
         return completion.choices[0].text
 
     async def acomplete_iter(self, client: Any, prompt: str) -> Any:
         aclient = self._check_client(client)
-        completion = await aclient.completions.create(
-            prompt=prompt, **process_llm_config(self.config), stream=True
-        )
+        completion = await aclient.completions.create(prompt=prompt, **process_llm_config(self.config), stream=True)
         async for chunk in completion:
             yield chunk.choices[0].text
 
     async def achat(self, client: Any, messages: list[dict[str, str]]) -> str:
         aclient = self._check_client(client)
-        completion = await aclient.chat.completions.create(
-            messages=messages, **process_llm_config(self.config)
-        )
+        completion = await aclient.chat.completions.create(messages=messages, **process_llm_config(self.config))
         return completion.choices[0].message.content or ""
 
     async def achat_iter(self, client: Any, messages: list[dict[str, str]]) -> Any:
@@ -382,9 +346,7 @@ except ImportError:
 
 
 class AnthropicLLMModel(LLMModel):
-    config: dict = Field(
-        default={"model": "claude-3-sonnet-20240229", "temperature": 0.1}
-    )
+    config: dict = Field(default={"model": "claude-3-sonnet-20240229", "temperature": 0.1})
     name: str = "claude-3-sonnet-20240229"
 
     def __init__(self, *args, **kwargs):
@@ -394,9 +356,7 @@ class AnthropicLLMModel(LLMModel):
 
     def _check_client(self, client: Any) -> AsyncAnthropic:
         if client is None:
-            raise ValueError(
-                "Your client is None - did you forget to set it after pickling?"
-            )
+            raise ValueError("Your client is None - did you forget to set it after pickling?")
         if not isinstance(client, AsyncAnthropic):
             raise ValueError(  # noqa: TRY004
                 f"Your client is not a required AsyncAnthropic client. It is a {type(client)}"
@@ -420,9 +380,7 @@ class AnthropicLLMModel(LLMModel):
     async def achat(self, client: Any, messages: list[dict[str, str]]) -> str:
         aclient = self._check_client(client)
         # filter out system
-        sys_message = next(
-            (m["content"] for m in messages if m["role"] == "system"), None
-        )
+        sys_message = next((m["content"] for m in messages if m["role"] == "system"), None)
         # BECAUISE THEY DO NOT USE NONE TO INDICATE SENTINEL
         # LIKE ANY SANE PERSON
         if sys_message:
@@ -440,9 +398,7 @@ class AnthropicLLMModel(LLMModel):
 
     async def achat_iter(self, client: Any, messages: list[dict[str, str]]) -> Any:
         aclient = self._check_client(client)
-        sys_message = next(
-            (m["content"] for m in messages if m["role"] == "system"), None
-        )
+        sys_message = next((m["content"] for m in messages if m["role"] == "system"), None)
         if sys_message:
             completion = await aclient.messages.create(
                 stream=True,
@@ -474,9 +430,7 @@ class LlamaEmbeddingModel(EmbeddingModel):
         async def process(texts: list[str]) -> list[float]:
             for i in range(3):  # noqa: B007
                 # access httpx client directly to avoid type casting
-                response = await client._client.post(
-                    client.base_url.join("../embedding"), json={"content": texts}
-                )
+                response = await client._client.post(client.base_url.join("../embedding"), json={"content": texts})
                 body = response.json()
                 if len(texts) == 1:
                     if (
@@ -508,14 +462,14 @@ class SentenceTransformerEmbeddingModel(EmbeddingModel):
         try:
             from sentence_transformers import SentenceTransformer
         except ImportError as exc:
-            raise ImportError(
-                "Please install sentence-transformers to use this model"
-            ) from exc
+            raise ImportError("Please install sentence-transformers to use this model") from exc
 
         self._model = SentenceTransformer(self.name)
 
     async def embed_documents(
-        self, client: Any, texts: list[str]  # noqa: ARG002
+        self,
+        client: Any,
+        texts: list[str],  # noqa: ARG002
     ) -> list[list[float]]:
         from sentence_transformers import SentenceTransformer
 
@@ -540,9 +494,7 @@ class VectorStore(BaseModel, ABC):
         pass
 
     @abstractmethod
-    async def similarity_search(
-        self, client: Any, query: str, k: int
-    ) -> tuple[Sequence[Embeddable], list[float]]:
+    async def similarity_search(self, client: Any, query: str, k: int) -> tuple[Sequence[Embeddable], list[float]]:
         pass
 
     @abstractmethod
@@ -579,19 +531,14 @@ class VectorStore(BaseModel, ABC):
             selected_similarities = similarity_matrix[:, selected_indices]
             max_sim_to_selected = selected_similarities.max(axis=1)
 
-            mmr_scores = (
-                self.mmr_lambda * np_scores
-                - (1 - self.mmr_lambda) * max_sim_to_selected
-            )
+            mmr_scores = self.mmr_lambda * np_scores - (1 - self.mmr_lambda) * max_sim_to_selected
             mmr_scores[selected_indices] = -np.inf  # Exclude already selected documents
 
             max_mmr_index = mmr_scores.argmax()
             selected_indices.append(max_mmr_index)
             remaining_indices.remove(max_mmr_index)
 
-        return [texts[i] for i in selected_indices], [
-            scores[i] for i in selected_indices
-        ]
+        return [texts[i] for i in selected_indices], [scores[i] for i in selected_indices]
 
 
 class NumpyVectorStore(VectorStore):
@@ -609,18 +556,12 @@ class NumpyVectorStore(VectorStore):
         self.texts.extend(texts)
         self._embeddings_matrix = np.array([t.embedding for t in self.texts])
 
-    async def similarity_search(
-        self, client: Any, query: str, k: int
-    ) -> tuple[Sequence[Embeddable], list[float]]:
+    async def similarity_search(self, client: Any, query: str, k: int) -> tuple[Sequence[Embeddable], list[float]]:
         k = min(k, len(self.texts))
         if k == 0:
             return [], []
-        np_query = np.array(
-            (await self.embedding_model.embed_documents(client, [query]))[0]
-        )
-        similarity_scores = cosine_similarity(
-            np_query.reshape(1, -1), self._embeddings_matrix
-        )[0]
+        np_query = np.array((await self.embedding_model.embed_documents(client, [query]))[0])
+        similarity_scores = cosine_similarity(np_query.reshape(1, -1), self._embeddings_matrix)[0]
         similarity_scores = np.nan_to_num(similarity_scores, nan=-np.inf)
         # minus so descending
         # we could use arg-partition here
@@ -659,7 +600,8 @@ class LangchainLLMModel(LLMModel):
             yield chunk
 
     async def achat(self, client: Any, messages: list[dict[str, str]]) -> str:
-        from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+        from langchain_core.messages import (BaseMessage, HumanMessage,
+                                             SystemMessage)
 
         lc_messages: list[BaseMessage] = []
         for m in messages:
@@ -672,7 +614,8 @@ class LangchainLLMModel(LLMModel):
         return (await client.ainvoke(lc_messages)).content
 
     async def achat_iter(self, client: Any, messages: list[dict[str, str]]) -> Any:
-        from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+        from langchain_core.messages import (BaseMessage, HumanMessage,
+                                             SystemMessage)
 
         lc_messages: list[BaseMessage] = []
         for m in messages:
@@ -714,9 +657,7 @@ class LangchainVectorStore(VectorStore):
         # because langchain objects are not serializable
         store_builder = None
         if "store_builder" in data:
-            store_builder = LangchainVectorStore.check_store_builder(
-                data.pop("store_builder")
-            )
+            store_builder = LangchainVectorStore.check_store_builder(data.pop("store_builder"))
         if "cls" in data and "embedding_model" in data:
             # make a little closure
             cls = data.pop("cls")
@@ -760,13 +701,9 @@ class LangchainVectorStore(VectorStore):
             raise ValueError("You must set store_builder before adding texts")
         self.class_type = type(texts[0])
         if self.class_type == Text:
-            vec_store_text_and_embeddings = [
-                (x.text, x.embedding) for x in cast(list[Text], texts)
-            ]
+            vec_store_text_and_embeddings = [(x.text, x.embedding) for x in cast(list[Text], texts)]
         elif self.class_type == Doc:
-            vec_store_text_and_embeddings = [
-                (x.citation, x.embedding) for x in cast(list[Doc], texts)
-            ]
+            vec_store_text_and_embeddings = [(x.citation, x.embedding) for x in cast(list[Doc], texts)]
         else:
             raise ValueError("Only embeddings of type Text are supported")
         if self._store is None:
@@ -782,14 +719,15 @@ class LangchainVectorStore(VectorStore):
         )
 
     async def similarity_search(
-        self, client: Any, query: str, k: int  # noqa: ARG002
+        self,
+        client: Any,
+        query: str,
+        k: int,  # noqa: ARG002
     ) -> tuple[Sequence[Embeddable], list[float]]:
         if self._store is None:
             return [], []
         results = await self._store.asimilarity_search_with_relevance_scores(query, k=k)
-        texts, scores = [self.class_type(**r[0].metadata) for r in results], [
-            r[1] for r in results
-        ]
+        texts, scores = [self.class_type(**r[0].metadata) for r in results], [r[1] for r in results]
         return texts, scores
 
     def clear(self) -> None:

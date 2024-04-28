@@ -10,9 +10,7 @@ summary_prompt = (
     "\n\nRelevant Information Summary ({summary_length}):"
 )
 
-summary_json_prompt = (
-    "Excerpt from {citation}\n\n----\n\n{text}\n\n----\n\nQuestion: {question}\n\n"
-)
+summary_json_prompt = "Excerpt from {citation}\n\n----\n\n{text}\n\n----\n\nQuestion: {question}\n\n"
 
 qa_prompt = (
     "Answer the question below with the context.\n\n"

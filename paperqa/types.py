@@ -4,24 +4,12 @@ from typing import Any, Callable
 from uuid import UUID, uuid4
 
 import tiktoken
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    computed_field,
-    field_validator,
-    model_validator,
-)
+from pydantic import (BaseModel, ConfigDict, Field, computed_field,
+                      field_validator, model_validator)
 
-from .prompts import (
-    citation_prompt,
-    default_system_prompt,
-    qa_prompt,
-    select_paper_prompt,
-    summary_json_prompt,
-    summary_json_system_prompt,
-    summary_prompt,
-)
+from .prompts import (citation_prompt, default_system_prompt, qa_prompt,
+                      select_paper_prompt, summary_json_prompt,
+                      summary_json_system_prompt, summary_prompt)
 from .utils import get_citenames
 from .version import __version__ as pqa_version
 
@@ -48,9 +36,7 @@ class LLMResult(BaseModel):
     seconds_to_first_token: float = Field(
         default=0.0, description="Delta time (sec) to first response token's arrival."
     )
-    seconds_to_last_token: float = Field(
-        default=0.0, description="Delta time (sec) to last response token's arrival."
-    )
+    seconds_to_last_token: float = Field(default=0.0, description="Delta time (sec) to last response token's arrival.")
 
     def __str__(self):
         return self.text
@@ -111,34 +97,22 @@ class PromptCollection(BaseModel):
     @field_validator("summary")
     @classmethod
     def check_summary(cls, v: str) -> str:
-        if not set(get_formatted_variables(v)).issubset(
-            set(get_formatted_variables(summary_prompt))
-        ):
-            raise ValueError(
-                f"Summary prompt can only have variables: {get_formatted_variables(summary_prompt)}"
-            )
+        if not set(get_formatted_variables(v)).issubset(set(get_formatted_variables(summary_prompt))):
+            raise ValueError(f"Summary prompt can only have variables: {get_formatted_variables(summary_prompt)}")
         return v
 
     @field_validator("qa")
     @classmethod
     def check_qa(cls, v: str) -> str:
-        if not set(get_formatted_variables(v)).issubset(
-            set(get_formatted_variables(qa_prompt))
-        ):
-            raise ValueError(
-                f"QA prompt can only have variables: {get_formatted_variables(qa_prompt)}"
-            )
+        if not set(get_formatted_variables(v)).issubset(set(get_formatted_variables(qa_prompt))):
+            raise ValueError(f"QA prompt can only have variables: {get_formatted_variables(qa_prompt)}")
         return v
 
     @field_validator("select")
     @classmethod
     def check_select(cls, v: str) -> str:
-        if not set(get_formatted_variables(v)).issubset(
-            set(get_formatted_variables(select_paper_prompt))
-        ):
-            raise ValueError(
-                f"Select prompt can only have variables: {get_formatted_variables(select_paper_prompt)}"
-            )
+        if not set(get_formatted_variables(v)).issubset(set(get_formatted_variables(select_paper_prompt))):
+            raise ValueError(f"Select prompt can only have variables: {get_formatted_variables(select_paper_prompt)}")
         return v
 
     @field_validator("pre")
@@ -215,9 +189,7 @@ class Answer(BaseModel):
     def get_citation(self, name: str) -> str:
         """Return the formatted citation for the given docname."""
         try:
-            doc: Doc = next(
-                filter(lambda x: x.text.name == name, self.contexts)
-            ).text.doc
+            doc: Doc = next(filter(lambda x: x.text.name == name, self.contexts)).text.doc
         except StopIteration as exc:
             raise ValueError(f"Could not find docname {name} in contexts.") from exc
         return doc.citation
@@ -235,10 +207,7 @@ class Answer(BaseModel):
 
     def get_unique_docs_from_contexts(self, score_threshold: int = 0) -> set[Doc]:
         """Parse contexts for docs with scores above the input threshold."""
-        return {
-            c.text.doc
-            for c in filter(lambda x: x.score >= score_threshold, self.contexts)
-        }
+        return {c.text.doc for c in filter(lambda x: x.score >= score_threshold, self.contexts)}
 
 
 class ChunkMetadata(BaseModel):
@@ -274,6 +243,4 @@ class ParsedText(BaseModel):
         elif isinstance(self.content, list):  # noqa: RET505
             return [enc.encode_ordinary(c) for c in self.content]
         else:
-            raise NotImplementedError(
-                "Encoding only implemented for str and list[str] content."
-            )
+            raise NotImplementedError("Encoding only implemented for str and list[str] content.")

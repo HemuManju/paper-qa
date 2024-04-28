@@ -14,41 +14,16 @@ from uuid import UUID, uuid4
 from openai import AsyncOpenAI
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .llms import (
-    HybridEmbeddingModel,
-    LLMModel,
-    NumpyVectorStore,
-    OpenAIEmbeddingModel,
-    OpenAILLMModel,
-    VectorStore,
-    get_score,
-    llm_model_factory,
-    vector_store_factory,
-)
+from .llms import (HybridEmbeddingModel, LLMModel, NumpyVectorStore,
+                   OpenAIEmbeddingModel, OpenAILLMModel, VectorStore,
+                   get_score, llm_model_factory, vector_store_factory)
 from .paths import PAPERQA_DIR
 from .readers import read_doc
-from .types import (
-    Answer,
-    CallbackFactory,
-    Context,
-    Doc,
-    DocKey,
-    LLMResult,
-    PromptCollection,
-    Text,
-)
-from .utils import (
-    gather_with_concurrency,
-    get_loop,
-    guess_is_4xx,
-    llm_read_json,
-    maybe_is_html,
-    maybe_is_pdf,
-    maybe_is_text,
-    md5sum,
-    name_in_text,
-    strip_citations,
-)
+from .types import (Answer, CallbackFactory, Context, Doc, DocKey, LLMResult,
+                    PromptCollection, Text)
+from .utils import (gather_with_concurrency, get_loop, guess_is_4xx,
+                    llm_read_json, maybe_is_html, maybe_is_pdf, maybe_is_text,
+                    md5sum, name_in_text, strip_citations)
 
 
 # this is just to reduce None checks/type checks
@@ -69,11 +44,7 @@ class Docs(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     llm: str = "default"
     summary_llm: str | None = None
-    llm_model: LLMModel = Field(
-        default=OpenAILLMModel(
-            config={"model": "gpt-4-0125-preview", "temperature": 0.1}
-        )
-    )
+    llm_model: LLMModel = Field(default=OpenAILLMModel(config={"model": "gpt-4-0125-preview", "temperature": 0.1}))
     summary_llm_model: LLMModel | None = Field(default=None, validate_default=True)
     embedding: str | None = "default"
     docs: dict[DocKey, Doc] = {}
@@ -90,9 +61,7 @@ class Docs(BaseModel):
     jit_texts_index: bool = False
     # This is used to strip indirect citations that come up from the summary llm
     strip_citations: bool = True
-    llm_result_callback: Callable[[LLMResult], Coroutine[Any, Any, None]] = Field(
-        default=empty_callback
-    )
+    llm_result_callback: Callable[[LLMResult], Coroutine[Any, Any, None]] = Field(default=empty_callback)
     model_config = ConfigDict(extra="forbid")
 
     def __init__(self, **data):
@@ -130,14 +99,8 @@ class Docs(BaseModel):
         if isinstance(data, Docs):
             # check our default gpt-4/3.5-turbo config
             # default check is hard - becauise either llm is set or llm_model is set
-            if (
-                data.summary_llm_model is None
-                and data.llm == "default"
-                and type(data.llm_model) == OpenAILLMModel
-            ):
-                data.summary_llm_model = OpenAILLMModel(
-                    config={"model": "gpt-3.5-turbo", "temperature": 0.1}
-                )
+            if data.summary_llm_model is None and data.llm == "default" and type(data.llm_model) == OpenAILLMModel:
+                data.summary_llm_model = OpenAILLMModel(config={"model": "gpt-3.5-turbo", "temperature": 0.1})
             elif data.summary_llm_model is None:
                 data.summary_llm_model = data.llm_model
         return data
@@ -153,10 +116,7 @@ class Docs(BaseModel):
                 data.llm_model.infer_llm_type(data._client)
                 data.llm = data.llm_model.name
             if data.summary_llm_model is not None:
-                if (
-                    data.summary_llm is None
-                    and data.summary_llm_model is data.llm_model
-                ):
+                if data.summary_llm is None and data.summary_llm_model is data.llm_model:
                     data.summary_llm = data.llm
                 if data.summary_llm == "langchain":
                     # from langchain models - kind of hacky
@@ -202,14 +162,9 @@ class Docs(BaseModel):
             # check if we have an openai embedding model in use
             if isinstance(self.texts_index.embedding_model, OpenAIEmbeddingModel) or (
                 isinstance(self.texts_index.embedding_model, HybridEmbeddingModel)
-                and any(
-                    isinstance(m, OpenAIEmbeddingModel)
-                    for m in self.texts_index.embedding_model.models
-                )
+                and any(isinstance(m, OpenAIEmbeddingModel) for m in self.texts_index.embedding_model.models)
             ):
-                embedding_client = (
-                    client if isinstance(client, AsyncOpenAI) else AsyncOpenAI()
-                )
+                embedding_client = client if isinstance(client, AsyncOpenAI) else AsyncOpenAI()
         self._embedding_client = embedding_client
         Docs.make_llm_names_consistent(self)
 
@@ -430,9 +385,7 @@ class Docs(BaseModel):
         # 2. Set the Doc's embedding to be the Doc's citation embedded
         if doc.embedding is None:
             doc.embedding = (
-                await self.docs_index.embedding_model.embed_documents(
-                    self._embedding_client, texts=[doc.citation]
-                )
+                await self.docs_index.embedding_model.embed_documents(self._embedding_client, texts=[doc.citation])
             )[0]
         # 3. Now we can set the text embeddings
         if text_embeddings is not None:
@@ -489,9 +442,7 @@ class Docs(BaseModel):
             fetch_k=5 * (k + len(self.deleted_dockeys)),
         )
         # filter the matches
-        matched_docs = [
-            m for m in cast(list[Doc], matches) if m.dockey not in self.deleted_dockeys
-        ]
+        matched_docs = [m for m in cast(list[Doc], matches) if m.dockey not in self.deleted_dockeys]
 
         if len(matched_docs) == 0:
             return set()
@@ -538,10 +489,7 @@ class Docs(BaseModel):
             self.texts_index.add_texts_and_embeddings(texts)
         if self.jit_texts_index and keys is None:
             # Not sure what else to do here???????
-            print(
-                "Warning: JIT text index without keys "
-                "requires rebuilding index each time!"
-            )
+            print("Warning: JIT text index without keys " "requires rebuilding index each time!")
             self.texts_index.clear()
             self.texts_index.add_texts_and_embeddings(texts)
 
@@ -675,10 +623,7 @@ class Docs(BaseModel):
                 # fallback to string (or json mode not enabled)
                 if not success or not self.prompts.summary_json:
                     # Process as string
-                    if (
-                        "not applicable" in context.lower()
-                        or "not relevant" in context.lower()
-                    ):
+                    if "not applicable" in context.lower() or "not relevant" in context.lower():
                         return None, llm_result
                     score = get_score(context)
                 if self.strip_citations:
@@ -689,27 +634,21 @@ class Docs(BaseModel):
                 text=Text(
                     text=match.text,
                     name=match.name,
-                    doc=match.doc.__class__(
-                        **match.doc.model_dump(exclude="embedding")
-                    ),
+                    doc=match.doc.__class__(**match.doc.model_dump(exclude="embedding")),
                 ),
                 score=score,
                 **extras,
             )
             return c, llm_result
 
-        results = await gather_with_concurrency(
-            self.max_concurrent, [process(m) for m in matches]
-        )
+        results = await gather_with_concurrency(self.max_concurrent, [process(m) for m in matches])
         # update token counts
         [answer.add_tokens(r[1]) for r in results]
 
         # filter out failures
         contexts = [c for c, r in results if c is not None]
 
-        answer.contexts = sorted(
-            contexts + answer.contexts, key=lambda x: x.score, reverse=True
-        )
+        answer.contexts = sorted(contexts + answer.contexts, key=lambda x: x.score, reverse=True)
         answer.contexts = answer.contexts[:max_sources]
         context_str = "\n\n".join(
             [
@@ -789,14 +728,10 @@ class Docs(BaseModel):
             pre.answer_id = answer.id
             await self.llm_result_callback(pre)
             answer.add_tokens(pre)
-            answer.context = (
-                answer.context + "\n\nExtra background information:" + str(pre)
-            )
+            answer.context = answer.context + "\n\nExtra background information:" + str(pre)
         bib = {}
         if len(answer.context) < 10:  # and not self.memory:  # noqa: PLR2004
-            answer_text = (
-                "I cannot answer this question due to insufficient information."
-            )
+            answer_text = "I cannot answer this question due to insufficient information."
         else:
             qa_chain = self.llm_model.make_chain(
                 client=self._client,
@@ -825,9 +760,7 @@ class Docs(BaseModel):
             # do check for whole key (so we don't catch Callahan2019a with Callahan2019)
             if name_in_text(name, answer_text):
                 bib[name] = citation
-        bib_str = "\n\n".join(
-            [f"{i+1}. ({k}): {c}" for i, (k, c) in enumerate(bib.items())]
-        )
+        bib_str = "\n\n".join([f"{i+1}. ({k}): {c}" for i, (k, c) in enumerate(bib.items())])
         formatted_answer = f"Question: {answer.question}\n\n{answer_text}\n"
         if len(bib) > 0:
             formatted_answer += f"\nReferences\n\n{bib_str}\n"

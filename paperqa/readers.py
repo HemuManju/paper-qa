@@ -53,17 +53,13 @@ def parse_pdf_to_pages(path: Path) -> ParsedText:
     return ParsedText(content=pages, metadata=metadata)
 
 
-def chunk_pdf(
-    parsed_text: ParsedText, doc: Doc, chunk_chars: int, overlap: int
-) -> list[Text]:
+def chunk_pdf(parsed_text: ParsedText, doc: Doc, chunk_chars: int, overlap: int) -> list[Text]:
     pages: list[str] = []
     texts: list[Text] = []
     split: str = ""
 
     if not isinstance(parsed_text.content, dict):
-        raise NotImplementedError(
-            f"ParsedText.content must be a `dict`, not {type(parsed_text.content)}."
-        )
+        raise NotImplementedError(f"ParsedText.content must be a `dict`, not {type(parsed_text.content)}.")
 
     for page_num, page_text in parsed_text.content.items():
         split += page_text
@@ -74,25 +70,17 @@ def chunk_pdf(
         while len(split) > chunk_chars:
             # pretty formatting of pages (e.g. 1-3, 4, 5-7)
             pg = "-".join([pages[0], pages[-1]])
-            texts.append(
-                Text(
-                    text=split[:chunk_chars], name=f"{doc.docname} pages {pg}", doc=doc
-                )
-            )
+            texts.append(Text(text=split[:chunk_chars], name=f"{doc.docname} pages {pg}", doc=doc))
             split = split[chunk_chars - overlap :]
             pages = [page_num]
 
     if len(split) > overlap or len(texts) == 0:
         pg = "-".join([pages[0], pages[-1]])
-        texts.append(
-            Text(text=split[:chunk_chars], name=f"{doc.docname} pages {pg}", doc=doc)
-        )
+        texts.append(Text(text=split[:chunk_chars], name=f"{doc.docname} pages {pg}", doc=doc))
     return texts
 
 
-def parse_text(
-    path: Path, html: bool = False, split_lines=False, use_tiktoken=True
-) -> ParsedText:
+def parse_text(path: Path, html: bool = False, split_lines=False, use_tiktoken=True) -> ParsedText:
     """Simple text splitter, can optionally use tiktoken, parse html, or split into newlines.
 
     Args:
@@ -115,9 +103,7 @@ def parse_text(
     metadata = {
         "parsing_libraries": ["tiktoken (cl100k_base)"] if use_tiktoken else [],
         "paperqa_version": str(pqa_version),
-        "total_parsed_text_length": (
-            len(text) if isinstance(text, str) else sum([len(t) for t in text])
-        ),
+        "total_parsed_text_length": (len(text) if isinstance(text, str) else sum([len(t) for t in text])),
         "parse_type": "txt" if not html else "html",
     }
     if html:
@@ -126,9 +112,7 @@ def parse_text(
     return ParsedText(content=text, metadata=ParsedMetadata(**metadata))
 
 
-def chunk_text(
-    parsed_text: ParsedText, doc: Doc, chunk_chars: int, overlap: int, use_tiktoken=True
-) -> list[Text]:
+def chunk_text(parsed_text: ParsedText, doc: Doc, chunk_chars: int, overlap: int, use_tiktoken=True) -> list[Text]:
     """Parse a document into chunks, based on tiktoken encoding.
 
     NOTE: We get some byte continuation errors.
@@ -140,9 +124,7 @@ def chunk_text(
     split = []
 
     if not isinstance(parsed_text.content, str):
-        raise NotImplementedError(
-            f"ParsedText.content must be a `str`, not {type(parsed_text.content)}."
-        )
+        raise NotImplementedError(f"ParsedText.content must be a `str`, not {type(parsed_text.content)}.")
 
     content = parsed_text.content if not use_tiktoken else parsed_text.encode_content()
 
@@ -155,11 +137,7 @@ def chunk_text(
     chunk_count = ceil(token_count / chunk_tokens)  # e.g., 4500 / 545 = 9
 
     for i in range(chunk_count):
-        split = content[
-            max(int(i * chunk_tokens - overlap_tokens), 0) : int(
-                (i + 1) * chunk_tokens + overlap_tokens
-            )
-        ]
+        split = content[max(int(i * chunk_tokens - overlap_tokens), 0) : int((i + 1) * chunk_tokens + overlap_tokens)]
         texts.append(
             Text(
                 text=enc.decode(split) if use_tiktoken else split,
@@ -170,18 +148,14 @@ def chunk_text(
     return texts
 
 
-def chunk_code_text(
-    parsed_text: ParsedText, doc: Doc, chunk_chars: int, overlap: int
-) -> list[Text]:
+def chunk_code_text(parsed_text: ParsedText, doc: Doc, chunk_chars: int, overlap: int) -> list[Text]:
     """Parse a document into chunks, based on line numbers (for code)."""
     split = ""
     texts: list[Text] = []
     last_line = 0
 
     if not isinstance(parsed_text.content, list):
-        raise NotImplementedError(
-            f"ParsedText.content must be a `list`, not {type(parsed_text.content)}."
-        )
+        raise NotImplementedError(f"ParsedText.content must be a `list`, not {type(parsed_text.content)}.")
 
     for i, line in enumerate(parsed_text.content):
         split += line
@@ -215,7 +189,8 @@ def read_doc(
     chunk_chars: int = ...,
     overlap: int = ...,
     force_pypdf: bool = ...,
-) -> list[Text]: ...
+) -> list[Text]:
+    ...
 
 
 @overload
@@ -227,7 +202,8 @@ def read_doc(
     chunk_chars: int = ...,
     overlap: int = ...,
     force_pypdf: bool = ...,
-) -> list[Text]: ...
+) -> list[Text]:
+    ...
 
 
 @overload
@@ -239,7 +215,8 @@ def read_doc(
     chunk_chars: int = ...,
     overlap: int = ...,
     force_pypdf: bool = ...,
-) -> ParsedText: ...
+) -> ParsedText:
+    ...
 
 
 @overload
@@ -251,7 +228,8 @@ def read_doc(
     chunk_chars: int = ...,
     overlap: int = ...,
     force_pypdf: bool = ...,
-) -> tuple[list[Text], ParsedMetadata]: ...
+) -> tuple[list[Text], ParsedMetadata]:
+    ...
 
 
 def read_doc(  # noqa: PLR0912
@@ -301,12 +279,8 @@ def read_doc(  # noqa: PLR0912
 
     # next chunk the parsed text
     if str_path.endswith(".pdf"):
-        chunked_text = chunk_pdf(
-            parsed_text, doc, chunk_chars=chunk_chars, overlap=overlap
-        )
-        chunk_metadata = ChunkMetadata(
-            chunk_chars=chunk_chars, overlap=overlap, chunk_type="overlap_pdf_by_page"
-        )
+        chunked_text = chunk_pdf(parsed_text, doc, chunk_chars=chunk_chars, overlap=overlap)
+        chunk_metadata = ChunkMetadata(chunk_chars=chunk_chars, overlap=overlap, chunk_type="overlap_pdf_by_page")
     elif str_path.endswith((".txt", ".html")):
         chunked_text = chunk_text(
             parsed_text,
@@ -315,16 +289,10 @@ def read_doc(  # noqa: PLR0912
             overlap=overlap,
             use_tiktoken=True,
         )
-        chunk_metadata = ChunkMetadata(
-            chunk_chars=chunk_chars, overlap=overlap, chunk_type="overlap"
-        )
+        chunk_metadata = ChunkMetadata(chunk_chars=chunk_chars, overlap=overlap, chunk_type="overlap")
     else:
-        chunked_text = chunk_code_text(
-            parsed_text, doc, chunk_chars=chunk_chars, overlap=overlap
-        )
-        chunk_metadata = ChunkMetadata(
-            chunk_chars=chunk_chars, overlap=overlap, chunk_type="overlap_code_by_line"
-        )
+        chunked_text = chunk_code_text(parsed_text, doc, chunk_chars=chunk_chars, overlap=overlap)
+        chunk_metadata = ChunkMetadata(chunk_chars=chunk_chars, overlap=overlap, chunk_type="overlap_code_by_line")
 
     if include_metadata:
         parsed_text.metadata.chunk_metadata = chunk_metadata

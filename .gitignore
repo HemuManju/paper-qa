@@ -133,3 +133,5 @@ dmypy.json
 
 *.ipynb
 env
+config.yml
+main.py

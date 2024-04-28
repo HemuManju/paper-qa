@@ -104,9 +104,7 @@ class ZoteroDB(zotero.Zotero):
         self.logger.info(f"Using cache location: {storage}")
         self.storage = storage
 
-        super().__init__(
-            library_type=library_type, library_id=library_id, api_key=api_key, **kwargs
-        )
+        super().__init__(library_type=library_type, library_id=library_id, api_key=api_key, **kwargs)
 
     def get_pdf(self, item: dict) -> Union[Path, None]:  # noqa: FA100
         """Gets a filename for a given Zotero key for a PDF.
@@ -204,9 +202,7 @@ class ZoteroDB(zotero.Zotero):
             query_kwargs["direction"] = direction
 
         if collection_name is not None and len(query_kwargs) > 0:
-            raise ValueError(
-                "You cannot specify a `collection_name` and search query simultaneously!"
-            )
+            raise ValueError("You cannot specify a `collection_name` and search query simultaneously!")
 
         max_limit = 100
 
@@ -218,18 +214,14 @@ class ZoteroDB(zotero.Zotero):
 
         collection_id = None
         if collection_name:
-            collection_id = self._get_collection_id(
-                collection_name
-            )  # raise error if not found
+            collection_id = self._get_collection_id(collection_name)  # raise error if not found
 
         while num_remaining > 0:
             cur_limit = min(max_limit, num_remaining)
             self.logger.info(f"Downloading new batch of up to {cur_limit} papers.")
 
             if collection_id:
-                _items = self._sliced_collection_items(
-                    collection_id, limit=cur_limit, start=i
-                )
+                _items = self._sliced_collection_items(collection_id, limit=cur_limit, start=i)
             else:
                 _items = self.top(**query_kwargs, limit=cur_limit, start=i)
 
@@ -294,9 +286,7 @@ class ZoteroDB(zotero.Zotero):
 
         if collection_id:
             coll_items = self.collection_items(collection_id)
-            self.logger.info(
-                f"Collection '{collection_name}' found: {len(coll_items)} items"
-            )
+            self.logger.info(f"Collection '{collection_name}' found: {len(coll_items)} items")
 
         else:
             raise ValueError(f"Collection '{collection_name}' not found")
