@@ -4,8 +4,10 @@ import asyncio
 import inspect
 import json
 import math
+import pickle
 import re
 import string
+from datetime import datetime
 from pathlib import Path
 from typing import Any, BinaryIO, Coroutine, Iterator, Union
 
@@ -192,3 +194,31 @@ def llm_read_json(text: str) -> dict:
     text = re.sub(pattern, replace_newlines, text)
 
     return json.loads(text)
+
+
+def save_embeddings(docs, index_file_path=None):
+    """Save the indexed docs file.
+
+    Parameters
+    ----------
+    docs : Docs.
+        A instance of Docs.
+    index_file_path : str, optional.
+        Path to save the indexed file, by default None.
+    """
+    if index_file_path is None:
+        index_file_path = f"docs_{datetime.today().strftime('%Y-%m-%d %H:%M:%S')}.pkl"
+    with open(index_file_path, "wb") as f:
+        pickle.dump(docs, f)
+
+
+def load_embeddings(index_file_path):
+    """Load the saved indexed file.
+
+    Parameters
+    ----------
+    index_file_path : str.
+        File path.
+    """
+    with open(index_file_path, "rb") as f:
+        return pickle.load(f)  # noqa: S301

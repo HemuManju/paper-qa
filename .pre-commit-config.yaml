@@ -37,6 +37,7 @@ repos:
           - pydantic~=2.0 # Match pyproject.toml
           - types-requests
           - types-setuptools
+          - types-pyyaml
   - repo: https://github.com/rbubley/mirrors-prettier
     rev: v3.3.2
     hooks:
